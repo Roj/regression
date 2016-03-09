@@ -12,6 +12,8 @@ import random
 
 
 class SoftmaxRegression:
+    minibatch_size = 30
+    iterations = 100
     def __init__(self,train,test,k):
         self.train_data = train
         self.test_data = test
@@ -38,15 +40,17 @@ class SoftmaxRegression:
     def single_numerator(self,theta,k,X_i): #return the k-numerator of the classify
         exponent = np.dot(theta[:,k],X_i)        
         return math.exp(exponent - 50)
-    def single_sgradient(self,theta,k,samples):
+    #mini batch gradient descent
+    def single_gradient(self,theta,k,samples):
+        
         total = 0
-        begin = int(math.floor(random.random() * len(samples[0])))
-        end = min(begin+100,len(samples[0]))
+        begin = int(math.floor(random.random() * len(samples)))
+        end = min(begin+self.minibatch_size,len(samples))
         for i in xrange(begin,end):
             sample = samples[i]
             special_term = 1 if sample['class'] == k else 0
             bottom = self.denominator(theta,sample['vec'])
-            total += sample['vec'] * (special_term - self.single_numerator(theta,k,sample['vec'])/bottom)
+            total -= sample['vec'] * (special_term - self.single_numerator(theta,k,sample['vec']) * 1.0/bottom)
         return total
     #Gradient is used with a subset
     def normalize(self,v):
@@ -68,14 +72,12 @@ class SoftmaxRegression:
     def update_theta(self):
         old_theta = self.theta
         for i in xrange(0,self.theta.shape[1]):
-            #question: here we are classifying with different thetas each time (due to update)
-            #should we use the old theta for each stochastic gradient calculation?
-            grad = self.single_sgradient(old_theta,i,self.train_data)
+            grad = self.single_gradient(old_theta,i,self.train_data)
             self.theta[:,i] = old_theta[:,i] - self.normalize(grad)
         #self.fix_theta()
         
     def train(self):
-        amount_iter = 40
+        amount_iter = self.iterations
         for i in xrange(0,amount_iter):
             self.update_theta()
             if i%10 == 0: 
@@ -84,8 +86,26 @@ class SoftmaxRegression:
         print "Cost at the beginning: "+str(self.cost(self.theta,self.train_data))
         self.train()
         print "Cost at the end: "+str(self.cost(self.theta,self.train_data))
-
-
+    def classify(self,X_i):
+        max = 0
+        max_class = 0
+        #No need for the denominator
+        for j in xrange(0,self.theta.shape[1]):
+            numerator = self.single_numerator(self.theta,j,X_i)
+            if numerator > max:
+                max_class = j
+                max = numerator
+        return max_class
+    def right_wrong(self,samples):
+        right = 0
+        wrong = 0
+        for sample in samples:
+            if self.classify(sample['vec']) == sample['class']:
+                right += 1
+            else:
+                wrong += 1
+        print "Right: " + str(right) + " Wrong: " + str(wrong)
+        print "Correct: " + str(right* 100.0 /(right+wrong)) + "%"
 
 print "Loading data..."
 #get the data at http://deeplearning.net/tutorial/gettingstarted.html
@@ -110,3 +130,4 @@ print
 
 stanford = SoftmaxRegression(samples,real_money,10)
 stanford.run()
+stanford.right_wrong(stanford.train_data) # around 65-80%
