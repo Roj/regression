@@ -73,7 +73,7 @@ class SoftmaxRegression:
         old_theta = self.theta
         for i in xrange(0,self.theta.shape[1]):
             grad = self.single_gradient(old_theta,i,self.train_data)
-            self.theta[:,i] = old_theta[:,i] - self.normalize(grad)
+            self.theta[:,i] = old_theta[:,i] - 1.0/(1.0 + i) * self.normalize(grad)
         #self.fix_theta()
         
     def train(self):
@@ -128,6 +128,6 @@ print
 print
 
 
-stanford = SoftmaxRegression(samples,real_money,10)
-stanford.run()
-stanford.right_wrong(stanford.train_data) # around 65-80%
+    stanford = SoftmaxRegression(samples,real_money,10)
+    stanford.run()
+    stanford.right_wrong(stanford.train_data) # around 75-85%
